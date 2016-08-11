@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/fatih/color"
 	"github.com/gorilla/websocket"
 
@@ -21,7 +23,10 @@ var yellow func(a ...interface{}) string = color.New(color.FgYellow).SprintFunc(
 
 func main() {
 
+	setupFlags(flag.CommandLine)
 	flag.Parse()
+
+	print.ShowDebug = params.debug
 
 	// Change rootPath to working dir if not set
 	cwd, err := os.Getwd()
@@ -30,6 +35,10 @@ func main() {
 	}
 	if params.rootPath == "" {
 		params.rootPath = cwd
+	}
+
+	if !strings.HasSuffix(params.rootPath, string(os.PathSeparator)) {
+		params.rootPath += string(os.PathSeparator)
 	}
 
 	// Check rootPath
@@ -49,6 +58,9 @@ func main() {
 /* ======= Filesytem watching ======= */
 
 func watchFilesystem() {
+	prevTime := time.Now().UnixNano()
+	prevName := ""
+	includePatterns := strings.Split(params.includePatterns, ",")
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -58,11 +70,12 @@ func watchFilesystem() {
 
 	done := make(chan bool)
 	go func() {
+	WATCHLOOP:
 		for {
 			select {
 			case event := <-watcher.Events:
 
-				// print.Line("event:", event)
+				print.Debug("event:", event)
 				// if event.Op&fsnotify.Write == fsnotify.Write {
 				// 	print.Line("modified file:", cyan(event.Name))
 				// }
@@ -79,9 +92,42 @@ func watchFilesystem() {
 					}
 				}
 
+				// De-duplicate event
+				now := time.Now().UnixNano()
+				duplicate := event.Name == prevName && (now-prevTime) < int64(100*time.Millisecond)
+				prevTime = now
+				prevName = event.Name
+				if duplicate {
+					print.Debug("De-duplicated event")
+					continue WATCHLOOP
+				}
+
 				// Send reload commands
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					print.Line("reloading:", cyan(event.Name))
+
+					displayName := strings.TrimPrefix(event.Name, params.rootPath)
+
+					if len(includePatterns) > 0 {
+						matched := false
+						for _, pattern := range includePatterns {
+							print.Debug("Pattern", pattern)
+							match, err := doublestar.Match(pattern, event.Name)
+							if err != nil {
+								print.Error("Invalid pattern:", err)
+							}
+							if match {
+								print.Debug("Match found", pattern, event.Name)
+								matched = true
+								break
+							}
+						}
+						if !matched {
+							print.Line(yellow("Ignoring:"), cyan(displayName))
+							continue WATCHLOOP
+						}
+					}
+
+					print.Line("Reloading:", cyan(displayName))
 					data := reloadRequest{
 						Command: "reload",
 						Path:    event.Name,
@@ -145,7 +191,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 				SendString <- "{\"command\":\"hello\",\"protocols\":[\"http://livereload.com/protocols/official-7\",\"http://livereload.com/protocols/official-8\",\"http://livereload.com/protocols/official-9\",\"http://livereload.com/protocols/2.x-origin-version-negotiation\",\"http://livereload.com/protocols/2.x-remote-control\"],\"serverName\":\"LiveReload 2\"}"
 			} else {
 				jsonData, _ := json.Marshal(&data)
-				print.Line("Got data", string(jsonData))
+				print.Debug("Got data", string(jsonData))
 			}
 
 		} else {
@@ -157,12 +203,13 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func startServing() {
-	print.Line("Start serving")
+	port := "35729"
+	print.Line("Listening on port:", port)
 
 	http.HandleFunc("/livereload", websocketHandler)
-	http.Handle("/", http.FileServer(http.Dir(".")))
-	// http.Handle("/", http.FileServer(assetFS()))
-	err := http.ListenAndServe(":35729", nil)
+	http.Handle("/livereload.js", http.FileServer(assetFS()))
+	// http.Handle("/", http.FileServer(http.Dir(".")))
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())
 	}

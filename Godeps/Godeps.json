@@ -4,6 +4,15 @@
 	"GodepVersion": "v74",
 	"Deps": [
 		{
+			"ImportPath": "github.com/bmatcuk/doublestar",
+			"Comment": "v1.0.3",
+			"Rev": "ec3b4af762f792cb93bf2518ff9ac408dbdc2b4e"
+		},
+		{
+			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
+			"Rev": "e1a2a7ec64b07d04ac9ebb072404fe8b7b60de1b"
+		},
+		{
 			"ImportPath": "github.com/fatih/color",
 			"Comment": "v0.2.0",
 			"Rev": "87d4004f2ab62d0d255e0a38f1680aa534549fe3"

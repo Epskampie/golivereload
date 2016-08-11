@@ -15,7 +15,6 @@ var SendString (chan string) = make(chan string)
 var SendJSON (chan interface{}) = make(chan interface{})
 
 func StartWebsocketPool() {
-	print.Line("Starting connection pool")
 	conns := make(map[*websocket.Conn]bool)
 
 	for {
@@ -40,17 +39,16 @@ func StartWebsocketPool() {
 			}
 
 		case data := <-SendJSON:
-			for conn, _ := range conns {
-				dataString, err := json.Marshal(data)
+			dataString, _ := json.Marshal(data)
+			print.Debug("sending:", string(dataString))
 
-				print.Line(string(dataString), err)
-				err = conn.WriteJSON(data)
+			for conn, _ := range conns {
+				err := conn.WriteJSON(data)
 
 				if err != nil {
-					print.Line("Error sending json:")
-					print.Line(err)
-				} else {
-					print.Line("Sent write to")
+					print.Line("Error sending json:", err)
+					conn.Close()
+					DelConn <- conn
 				}
 			}
 

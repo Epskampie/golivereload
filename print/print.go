@@ -13,6 +13,9 @@ var mux sync.Mutex
 
 var blue func(a ...interface{}) string = color.New(color.FgBlue).SprintFunc()
 var red func(a ...interface{}) string = color.New(color.FgRed).SprintFunc()
+var yellow func(a ...interface{}) string = color.New(color.FgYellow).SprintFunc()
+
+var ShowDebug bool = false
 
 func Line(a ...interface{}) {
 	mux.Lock()
@@ -25,12 +28,23 @@ func Line(a ...interface{}) {
 	fmt.Println("")
 }
 
-func Fatal(a ...interface{}) {
+func Error(a ...interface{}) {
 	Line(append([]interface{}{red("Error:")}, a...)...)
+}
+
+func Fatal(a ...interface{}) {
+	Error(a...)
 	os.Exit(1)
 }
 
 func printTime() {
 	t := time.Now()
 	fmt.Print(blue(t.Format("2006/01/02 15:04:05")), " ")
+}
+
+func Debug(a ...interface{}) {
+	if !ShowDebug {
+		return
+	}
+	Line(append([]interface{}{yellow("Debug:")}, a...)...)
 }

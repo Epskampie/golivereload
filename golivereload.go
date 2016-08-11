@@ -60,7 +60,7 @@ func main() {
 func watchFilesystem() {
 	prevTime := time.Now().UnixNano()
 	prevName := ""
-	includePatterns := strings.Split(params.includePatterns, ",")
+	includePatterns := strings.Split(params.includePatterns, ":")
 
 	notifyChannel := make(chan notify.EventInfo, 1)
 

@@ -16,8 +16,15 @@ type ParamsStruct struct {
 var params ParamsStruct
 
 func init() {
-	flag.StringVar(&params.rootPath, "path", "", "The directory to watch for changes.\n    \t(default: current directory)")
-	flag.StringVar(&params.includePatterns, "include", "**/*.{html,shtml,tmpl,xml,css,js,json,jpeg,jpg,gif,png,ico,cgi,php,py,pl,pm,rb}", "Only reload for files matching these patterns.")
+	sep := "\n    \t"
+	flag.StringVar(&params.rootPath, "path", "", "The directory to watch for changes."+sep+"(default: current directory)")
+	flag.StringVar(
+		&params.includePatterns,
+		"include",
+		"**/*.{html,shtml,tmpl,twig,xml,css,js,json}:**/*.{jpeg,jpg,gif,png,ico,cgi}:**/*.{php,py,pl,pm,rb}",
+		"Only reload for files matching these patterns."+sep+
+			"Use \":\" to separate patterns"+sep+
+			"Use \"**\" (double star) to match multiple directories.")
 	flag.BoolVar(&params.debug, "debug", false, "Show debug output.")
 	flag.BoolVar(&params.serve, "serve", false, "Start local webserver that serves files at -path.")
 

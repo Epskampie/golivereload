@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"io/ioutil"
 	"livereload/print"
 	"log"
 	"net/http"
@@ -84,10 +85,10 @@ func watchFilesystem() {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					fileInfo, err := os.Stat(event.Name)
 					if err == nil && fileInfo.IsDir() {
-						print.Line("got dir, watching:", event.Name)
+						print.Line("New directory, watching:", cyan(event.Name))
 						err := watcher.Add(event.Name)
 						if err != nil {
-							log.Fatal(err)
+							print.Error(err)
 						}
 					}
 				}
@@ -144,6 +145,14 @@ func watchFilesystem() {
 	err = watcher.Add(params.rootPath)
 	if err == nil {
 		print.Line("Watching directory:", cyan(params.rootPath))
+		fns, _ := ioutil.ReadDir(params.rootPath)
+		for _, fn := range fns {
+			if fn.IsDir() {
+				print.Debug("Watching: ", fn.Name())
+				// watcher.Add(fn.Name())
+				watcher.Watch(fn.Name())
+			}
+		}
 	} else {
 		print.Line("Got error while writing:")
 		log.Fatal(err)

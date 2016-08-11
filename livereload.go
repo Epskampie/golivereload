@@ -2,31 +2,53 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"flag"
+	"livereload/print"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/fatih/color"
 	"github.com/gorilla/websocket"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-var connections []*websocket.Conn
-
-type reloadRequest struct {
-	Command string `json:"command"`
-	Path    string `json:"path"`
-	LiveCSS bool   `json:"liveCSS"`
-}
+var cyan func(a ...interface{}) string = color.New(color.FgCyan).SprintFunc()
+var red func(a ...interface{}) string = color.New(color.FgRed).SprintFunc()
+var yellow func(a ...interface{}) string = color.New(color.FgYellow).SprintFunc()
 
 func main() {
-	go startWatching()
+
+	flag.Parse()
+
+	// Change rootPath to working dir if not set
+	cwd, err := os.Getwd()
+	if err != nil {
+		print.Fatal(red("Could not get current working dir.", err))
+	}
+	if params.rootPath == "" {
+		params.rootPath = cwd
+	}
+
+	// Check rootPath
+	fileInfo, err := os.Stat(params.rootPath)
+	if err != nil {
+		print.Fatal(red(err))
+	}
+	if !fileInfo.IsDir() {
+		print.Fatal(cyan(params.rootPath), red("is not a directory"))
+	}
+
+	go watchFilesystem()
+	go StartWebsocketPool()
 	startServing()
 }
 
-func startWatching() {
-	fmt.Println("Start watching")
+/* ======= Filesytem watching ======= */
+
+func watchFilesystem() {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -40,16 +62,16 @@ func startWatching() {
 			select {
 			case event := <-watcher.Events:
 
-				log.Println("event:", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
-				}
+				// print.Line("event:", event)
+				// if event.Op&fsnotify.Write == fsnotify.Write {
+				// 	print.Line("modified file:", cyan(event.Name))
+				// }
 
 				// Watch newly created directories
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					fileInfo, err := os.Stat(event.Name)
 					if err == nil && fileInfo.IsDir() {
-						log.Println("got dir, watching:", event.Name)
+						print.Line("got dir, watching:", event.Name)
 						err := watcher.Add(event.Name)
 						if err != nil {
 							log.Fatal(err)
@@ -59,38 +81,36 @@ func startWatching() {
 
 				// Send reload commands
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					fmt.Println("Sending write", event.Name)
-					for _, conn := range connections {
-						data := reloadRequest{
-							Command: "reload",
-							Path:    event.Name,
-							// liveCSS: strings.HasSuffix(event.Name, ".css"),
-							LiveCSS: false,
-						}
-						dataString, err := json.Marshal(data)
-
-						fmt.Println(string(dataString), err)
-						err = conn.WriteJSON(data)
-
-						if err != nil {
-							fmt.Println(err)
-						} else {
-							fmt.Println("Sent write to")
-						}
+					print.Line("reloading:", cyan(event.Name))
+					data := reloadRequest{
+						Command: "reload",
+						Path:    event.Name,
+						LiveCSS: strings.HasSuffix(event.Name, ".css"),
 					}
+					SendJSON <- data
 				}
 			case err := <-watcher.Errors:
-				// os.Stat(event)
-				log.Println("error:", err)
+				print.Line("File watcher error:", err)
 			}
 		}
 	}()
 
-	err = watcher.Add("/home/simon/tmp")
-	if err != nil {
+	err = watcher.Add(params.rootPath)
+	if err == nil {
+		print.Line("Watching directory:", cyan(params.rootPath))
+	} else {
+		print.Line("Got error while writing:")
 		log.Fatal(err)
 	}
 	<-done
+}
+
+/* ======= Websockets ======= */
+
+type reloadRequest struct {
+	Command string `json:"command"`
+	Path    string `json:"path"`
+	LiveCSS bool   `json:"liveCSS"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -103,49 +123,45 @@ func CheckOrigin(r *http.Request) bool {
 	return true
 }
 
-func echoHandler(w http.ResponseWriter, r *http.Request) {
+func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		print.Line(err)
 		return
 	}
 
-	connections = append(connections, conn)
+	AddConn <- conn
+
+	defer conn.Close()
 
 	for {
 		var data map[string]interface{}
 		err := conn.ReadJSON(&data)
 
 		if err == nil {
-			jsonData, err := json.Marshal(&data)
-			fmt.Println("Got data", string(jsonData), err)
 
-			// Helo
+			/* Hello command*/
 			if data["command"] == "hello" {
-				fmt.Println("Got hello command")
-				writeString(conn, "{\"command\":\"hello\",\"protocols\":[\"http://livereload.com/protocols/official-7\",\"http://livereload.com/protocols/official-8\",\"http://livereload.com/protocols/official-9\",\"http://livereload.com/protocols/2.x-origin-version-negotiation\",\"http://livereload.com/protocols/2.x-remote-control\"],\"serverName\":\"LiveReload 2\"}")
+				SendString <- "{\"command\":\"hello\",\"protocols\":[\"http://livereload.com/protocols/official-7\",\"http://livereload.com/protocols/official-8\",\"http://livereload.com/protocols/official-9\",\"http://livereload.com/protocols/2.x-origin-version-negotiation\",\"http://livereload.com/protocols/2.x-remote-control\"],\"serverName\":\"LiveReload 2\"}"
+			} else {
+				jsonData, _ := json.Marshal(&data)
+				print.Line("Got data", string(jsonData))
 			}
 
 		} else {
-			fmt.Println(err)
+			DelConn <- conn
 
 			return
 		}
 	}
 }
 
-func writeString(conn *websocket.Conn, msg string) {
-	err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func startServing() {
-	fmt.Println("Start serving")
+	print.Line("Start serving")
 
-	http.HandleFunc("/livereload", echoHandler)
+	http.HandleFunc("/livereload", websocketHandler)
 	http.Handle("/", http.FileServer(http.Dir(".")))
+	// http.Handle("/", http.FileServer(assetFS()))
 	err := http.ListenAndServe(":35729", nil)
 	if err != nil {
 		panic("ListenAndServe: " + err.Error())

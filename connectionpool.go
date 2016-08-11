@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"livereload/print"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -16,18 +17,29 @@ var SendJSON (chan interface{}) = make(chan interface{})
 
 func StartWebsocketPool() {
 	conns := make(map[*websocket.Conn]bool)
+	prevSend := int64(0)
+
+	printIfNotCausedBySend := func(a ...interface{}) {
+		if time.Now().Unix()-prevSend > 5 {
+			print.Line(a...)
+		} else {
+			print.Debug(a...)
+		}
+	}
 
 	for {
 		select {
 		case conn := <-AddConn:
 			conns[conn] = true
-			print.Line("Got new connection. Total number:", cyan(len(conns)))
+			printIfNotCausedBySend("Got new connection. Total number:", cyan(len(conns)))
 
 		case conn := <-DelConn:
 			delete(conns, conn)
-			print.Line("Removed connection. Total number:", cyan(len(conns)))
+			printIfNotCausedBySend("Removed connection. Total number:", cyan(len(conns)))
 
 		case msg := <-SendString:
+			prevSend = time.Now().Unix()
+
 			for conn, _ := range conns {
 				err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
 				if err != nil {
@@ -39,6 +51,8 @@ func StartWebsocketPool() {
 			}
 
 		case data := <-SendJSON:
+			prevSend = time.Now().Unix()
+
 			dataString, _ := json.Marshal(data)
 			print.Debug("sending:", string(dataString))
 

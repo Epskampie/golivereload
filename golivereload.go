@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"livereload/print"
+	"golivereload/print"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -186,6 +187,10 @@ func startServing() {
 	}
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		panic("ListenAndServe: " + err.Error())
+		if _, ok := err.(*net.OpError); ok {
+			print.Fatal("Port", port, "already in use")
+		} else {
+			print.Fatal("ListenAndServe: " + err.Error())
+		}
 	}
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"livereload/print"
+	"golivereload/print"
 	"time"
 
 	"github.com/gorilla/websocket"

@@ -19,7 +19,7 @@ func init() {
 	flag.StringVar(&params.rootPath, "path", "", "The directory to watch for changes.\n    \t(default: current directory)")
 	flag.StringVar(&params.includePatterns, "include", "**/*.html,**/*.css", "Only reload for files matching these patterns.")
 	flag.BoolVar(&params.debug, "debug", false, "Show debug output.")
-	flag.BoolVar(&params.serve, "serve", false, "Serve local webserver that serves files at -path.")
+	flag.BoolVar(&params.serve, "serve", false, "Start local webserver that serves files at -path.")
 
 }
 

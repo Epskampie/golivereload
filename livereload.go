@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"io/ioutil"
 	"livereload/print"
 	"log"
 	"net/http"
@@ -14,8 +13,7 @@ import (
 	"github.com/bmatcuk/doublestar"
 	"github.com/fatih/color"
 	"github.com/gorilla/websocket"
-
-	"github.com/fsnotify/fsnotify"
+	"github.com/rjeczalik/notify"
 )
 
 var cyan func(a ...interface{}) string = color.New(color.FgCyan).SprintFunc()
@@ -63,101 +61,65 @@ func watchFilesystem() {
 	prevName := ""
 	includePatterns := strings.Split(params.includePatterns, ",")
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
+	notifyChannel := make(chan notify.EventInfo, 1)
+
+	if err := notify.Watch(params.rootPath+"...", notifyChannel, notify.All); err != nil {
 		log.Fatal(err)
+	} else {
+		print.Line("Watching directory:", cyan(params.rootPath))
 	}
-	defer watcher.Close()
+	defer notify.Stop(notifyChannel)
 
-	done := make(chan bool)
-	go func() {
-	WATCHLOOP:
-		for {
-			select {
-			case event := <-watcher.Events:
+WATCHLOOP:
+	for {
+		switch event := <-notifyChannel; event.Event() {
+		case notify.Write:
 
-				print.Debug("event:", event)
-				// if event.Op&fsnotify.Write == fsnotify.Write {
-				// 	print.Line("modified file:", cyan(event.Name))
-				// }
+			// De-duplicate event
+			now := time.Now().UnixNano()
+			duplicate := event.Path() == prevName && (now-prevTime) < int64(100*time.Millisecond)
+			prevTime = now
+			prevName = event.Path()
+			if duplicate {
+				print.Debug("De-duplicated event")
+				continue WATCHLOOP
+			}
 
-				// Watch newly created directories
-				if event.Op&fsnotify.Create == fsnotify.Create {
-					fileInfo, err := os.Stat(event.Name)
-					if err == nil && fileInfo.IsDir() {
-						print.Line("New directory, watching:", cyan(event.Name))
-						err := watcher.Add(event.Name)
-						if err != nil {
-							print.Error(err)
-						}
+			// Send reload commands
+
+			displayName := strings.TrimPrefix(event.Path(), params.rootPath)
+
+			if len(includePatterns) > 0 {
+				matched := false
+				for _, pattern := range includePatterns {
+					print.Debug("Pattern", pattern)
+					match, err := doublestar.Match(pattern, event.Path())
+					if err != nil {
+						print.Error("Invalid pattern:", err)
+					}
+					if match {
+						print.Debug("Match found", pattern, event.Path())
+						matched = true
+						break
 					}
 				}
-
-				// De-duplicate event
-				now := time.Now().UnixNano()
-				duplicate := event.Name == prevName && (now-prevTime) < int64(100*time.Millisecond)
-				prevTime = now
-				prevName = event.Name
-				if duplicate {
-					print.Debug("De-duplicated event")
+				if !matched {
+					print.Line(yellow("Ignoring:"), cyan(displayName))
 					continue WATCHLOOP
 				}
-
-				// Send reload commands
-				if event.Op&fsnotify.Write == fsnotify.Write {
-
-					displayName := strings.TrimPrefix(event.Name, params.rootPath)
-
-					if len(includePatterns) > 0 {
-						matched := false
-						for _, pattern := range includePatterns {
-							print.Debug("Pattern", pattern)
-							match, err := doublestar.Match(pattern, event.Name)
-							if err != nil {
-								print.Error("Invalid pattern:", err)
-							}
-							if match {
-								print.Debug("Match found", pattern, event.Name)
-								matched = true
-								break
-							}
-						}
-						if !matched {
-							print.Line(yellow("Ignoring:"), cyan(displayName))
-							continue WATCHLOOP
-						}
-					}
-
-					print.Line("Reloading:", cyan(displayName))
-					data := reloadRequest{
-						Command: "reload",
-						Path:    event.Name,
-						LiveCSS: strings.HasSuffix(event.Name, ".css"),
-					}
-					SendJSON <- data
-				}
-			case err := <-watcher.Errors:
-				print.Line("File watcher error:", err)
 			}
-		}
-	}()
 
-	err = watcher.Add(params.rootPath)
-	if err == nil {
-		print.Line("Watching directory:", cyan(params.rootPath))
-		fns, _ := ioutil.ReadDir(params.rootPath)
-		for _, fn := range fns {
-			if fn.IsDir() {
-				print.Debug("Watching: ", fn.Name())
-				// watcher.Add(fn.Name())
-				watcher.Watch(fn.Name())
+			print.Line("Reloading:", cyan(displayName))
+			data := reloadRequest{
+				Command: "reload",
+				Path:    event.Path(),
+				LiveCSS: strings.HasSuffix(event.Path(), ".css"),
 			}
+			SendJSON <- data
+		default:
+			print.Debug("Got event", event)
 		}
-	} else {
-		print.Line("Got error while writing:")
-		log.Fatal(err)
 	}
-	<-done
 }
 
 /* ======= Websockets ======= */

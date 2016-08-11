@@ -18,11 +18,6 @@
 			"Rev": "87d4004f2ab62d0d255e0a38f1680aa534549fe3"
 		},
 		{
-			"ImportPath": "github.com/fsnotify/fsnotify",
-			"Comment": "v1.3.1",
-			"Rev": "a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb"
-		},
-		{
 			"ImportPath": "github.com/gorilla/websocket",
 			"Comment": "v1.0.0-18-g5e2e56d",
 			"Rev": "5e2e56d5dfd46884df1036f828777ee6273f2cff"
@@ -35,6 +30,10 @@
 		{
 			"ImportPath": "github.com/mattn/go-isatty",
 			"Rev": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8"
+		},
+		{
+			"ImportPath": "github.com/rjeczalik/notify",
+			"Rev": "48fbf980305bec9be7717fb46bb9bf2c5059c2e0"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",

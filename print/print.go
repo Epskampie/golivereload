@@ -23,7 +23,8 @@ func Line(a ...interface{}) {
 
 	printTime()
 	for _, obj := range a {
-		fmt.Print(obj, " ")
+		// fmt.Print(obj, " ")
+		fmt.Fprint(color.Output, obj, " ")
 	}
 	fmt.Println("")
 }
@@ -39,7 +40,7 @@ func Fatal(a ...interface{}) {
 
 func printTime() {
 	t := time.Now()
-	fmt.Print(blue(t.Format("2006/01/02 15:04:05")), " ")
+	fmt.Fprint(color.Output, blue(t.Format("2006/01/02 15:04:05")), " ")
 }
 
 func Debug(a ...interface{}) {

@@ -24,7 +24,8 @@ func init() {
 		"**/*.{html,shtml,tmpl,twig,xml,css,js,json}:**/*.{jpeg,jpg,gif,png,ico,cgi}:**/*.{php,py,pl,pm,rb}",
 		"Only reload for files matching these patterns."+sep+
 			"Use \":\" to separate patterns"+sep+
-			"Use \"**\" (double star) to match multiple directories.")
+			"Use \"**\" (double star) to match multiple directories."+sep+
+			"Matches are relative to watched path.")
 	flag.BoolVar(&params.debug, "debug", false, "Show debug output.")
 	flag.BoolVar(&params.serve, "serve", false, "Start local webserver that serves files at -path.")
 

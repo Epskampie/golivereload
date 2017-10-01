@@ -111,6 +111,10 @@ WATCHLOOP:
 			}
 
 			print.Line("Reloading:", cyan(displayName))
+			if params.delay > 0 {
+				print.Line("Delaying", params.delay, "ms first")
+				time.Sleep(time.Duration(params.delay) * time.Millisecond)
+			}
 			data := reloadRequest{
 				Command: "reload",
 				Path:    event.Path(),

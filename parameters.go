@@ -11,6 +11,7 @@ type ParamsStruct struct {
 	rootPath        string
 	debug           bool
 	serve           bool
+	delay           int
 }
 
 var params ParamsStruct
@@ -27,6 +28,7 @@ func init() {
 			"Use \"**\" (double star) to match multiple directories.")
 	flag.BoolVar(&params.debug, "debug", false, "Show debug output.")
 	flag.BoolVar(&params.serve, "serve", false, "Start local webserver that serves files at -path.")
+	flag.IntVar(&params.delay, "delay", 0, "Delay this many milliseconds before before sending reload command.")
 
 }
 

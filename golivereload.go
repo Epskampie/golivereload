@@ -68,6 +68,7 @@ func watchFilesystem() {
 		log.Fatal(err)
 	} else {
 		print.Line("Watching directory:", cyan(params.rootPath))
+		print.Line("Using include patterns:", params.includePatterns)
 	}
 	defer notify.Stop(notifyChannel)
 
@@ -88,29 +89,29 @@ WATCHLOOP:
 
 			// Send reload commands
 
-			displayName := strings.TrimPrefix(event.Path(), params.rootPath)
+			trimmedPath := strings.TrimPrefix(event.Path(), params.rootPath)
 
 			if len(includePatterns) > 0 {
 				matched := false
 				for _, pattern := range includePatterns {
-					print.Debug("Pattern", pattern)
-					match, err := doublestar.Match(pattern, event.Path())
+					print.Debug("Pattern", pattern, "Path", trimmedPath)
+					match, err := doublestar.Match(pattern, trimmedPath)
 					if err != nil {
 						print.Error("Invalid pattern:", err)
 					}
 					if match {
-						print.Debug("Match found", pattern, event.Path())
+						print.Debug("Match found", pattern, trimmedPath)
 						matched = true
 						break
 					}
 				}
 				if !matched {
-					print.Line(yellow("Ignoring:"), cyan(displayName))
+					print.Line(yellow("Ignoring:"), cyan(trimmedPath))
 					continue WATCHLOOP
 				}
 			}
 
-			print.Line("Reloading:", cyan(displayName))
+			print.Line("Reloading:", cyan(trimmedPath))
 			if params.delay > 0 {
 				print.Line("Delaying", params.delay, "ms first")
 				time.Sleep(time.Duration(params.delay) * time.Millisecond)

@@ -182,11 +182,20 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 func startServing() {
 	port := "35729"
 
+	changeHeaderThenServe := func(h http.Handler) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			// Set some header.
+			w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
+			// Serve with the actual handler.
+			h.ServeHTTP(w, r)
+		}
+	}
+
 	http.HandleFunc("/livereload", websocketHandler)
 	http.Handle("/livereload.js", http.FileServer(assetFS()))
 	if params.serve {
 		print.Line("Serving files from:", cyan(params.rootPath), "on:", cyan("http://localhost:"+port))
-		http.Handle("/", http.FileServer(http.Dir(params.rootPath)))
+		http.Handle("/", changeHeaderThenServe(http.FileServer(http.Dir(params.rootPath))))
 	} else {
 		print.Line("Listening on port:", port)
 	}

@@ -9,8 +9,10 @@ import (
 type ParamsStruct struct {
 	includePatterns string
 	rootPath        string
+	cmd             string
 	debug           bool
 	serve           bool
+	version         bool
 	delay           int
 }
 
@@ -29,7 +31,9 @@ func init() {
 			"Matches are relative to watched path.")
 	flag.BoolVar(&params.debug, "debug", false, "Show debug output.")
 	flag.BoolVar(&params.serve, "serve", false, "Start local webserver that serves files at -path.")
+	flag.BoolVar(&params.version, "version", false, "Show golivereload version.")
 	flag.IntVar(&params.delay, "delay", 0, "Delay this many milliseconds before before sending reload command.")
+	flag.StringVar(&params.cmd, "cmd", "", "Command to run after change is detected. See cmd-pattern."+sep+"(example: **/*.{scss} ./build.sh)")
 
 }
 

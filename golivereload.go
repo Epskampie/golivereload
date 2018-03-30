@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"golivereload/print"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -25,6 +27,11 @@ func main() {
 
 	setupFlags(flag.CommandLine)
 	flag.Parse()
+
+	if params.version {
+		fmt.Println("0.1.2")
+		os.Exit(0)
+	}
 
 	print.ShowDebug = params.debug
 
@@ -87,45 +94,70 @@ WATCHLOOP:
 				continue WATCHLOOP
 			}
 
-			// Send reload commands
-
 			trimmedPath := strings.TrimPrefix(event.Path(), params.rootPath)
 
-			if len(includePatterns) > 0 {
-				matched := false
-				for _, pattern := range includePatterns {
-					print.Debug("Pattern", pattern, "Path", trimmedPath)
-					match, err := doublestar.Match(pattern, trimmedPath)
-					if err != nil {
-						print.Error("Invalid pattern:", err)
-					}
-					if match {
-						print.Debug("Match found", pattern, trimmedPath)
-						matched = true
-						break
-					}
-				}
-				if !matched {
-					print.Line(yellow("Ignoring:"), cyan(trimmedPath))
-					continue WATCHLOOP
-				}
-			}
-
-			print.Line("Reloading:", cyan(trimmedPath))
-			if params.delay > 0 {
-				print.Line("Delaying", params.delay, "ms first")
-				time.Sleep(time.Duration(params.delay) * time.Millisecond)
-			}
-			data := reloadRequest{
-				Command: "reload",
-				Path:    event.Path(),
-				LiveCSS: strings.HasSuffix(event.Path(), ".css"),
-			}
-			SendJSON <- data
+			go processEvent(trimmedPath, event, includePatterns)
 		default:
 			print.Debug("Got event", event)
 		}
 	}
+}
+
+func tryMatch(patterns []string, subject string) (matched bool, pattern string) {
+	for _, pattern := range patterns {
+		print.Debug("Pattern", pattern, "Path", subject)
+		match, err := doublestar.Match(pattern, subject)
+		if err != nil {
+			print.Error("Invalid pattern:", err)
+		}
+		if match {
+			return true, pattern
+		}
+	}
+	return false, ""
+}
+
+func processEvent(trimmedPath string, event notify.EventInfo, includePatterns []string) {
+	// Run cmd
+	if params.cmd != "" {
+		splitCmd := strings.Split(params.cmd, " ")
+
+		matched, _ := tryMatch([]string{splitCmd[0]}, trimmedPath)
+		if matched {
+			print.Line("Running cmd: ", params.cmd)
+			time.Sleep(50 * time.Millisecond)
+
+			cmd := exec.Command(splitCmd[1], splitCmd[2:]...)
+			err := cmd.Run()
+			if err != nil {
+				print.Error("Error running cmd: ", err)
+			}
+		}
+	}
+
+	// Run cmd
+	if len(includePatterns) > 0 {
+		matched, pattern := tryMatch(includePatterns, trimmedPath)
+		if matched {
+			print.Debug("Match found", pattern, trimmedPath)
+		} else {
+			print.Line(yellow("Ignoring:"), cyan(trimmedPath))
+			return
+		}
+	}
+
+	print.Line("Reloading:", cyan(trimmedPath))
+	if params.delay > 0 {
+		print.Line("Delaying", params.delay, "ms first")
+		time.Sleep(time.Duration(params.delay) * time.Millisecond)
+		print.Line("sending")
+	}
+	data := reloadRequest{
+		Command: "reload",
+		Path:    event.Path(),
+		LiveCSS: strings.HasSuffix(event.Path(), ".css"),
+	}
+	SendJSON <- data
 }
 
 /* ======= Websockets ======= */

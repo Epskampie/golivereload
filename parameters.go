@@ -14,6 +14,7 @@ type ParamsStruct struct {
 	serve           bool
 	version         bool
 	delay           int
+	port            int
 }
 
 var params ParamsStruct
@@ -29,11 +30,12 @@ func init() {
 			"Use \":\" to separate patterns"+sep+
 			"Use \"**\" (double star) to match multiple directories."+sep+
 			"Matches are relative to watched path.")
+	flag.IntVar(&params.port, "port", 35729, "Port to serve on. Default: 35729")
 	flag.BoolVar(&params.debug, "debug", false, "Show debug output.")
 	flag.BoolVar(&params.serve, "serve", false, "Start local webserver that serves files at -path.")
 	flag.BoolVar(&params.version, "version", false, "Show golivereload version.")
 	flag.IntVar(&params.delay, "delay", 0, "Delay this many milliseconds before before sending reload command.")
-	flag.StringVar(&params.cmd, "cmd", "", "Command to run after change is detected. See cmd-pattern."+sep+"(example: **/*.{scss} ./build.sh)")
+	flag.StringVar(&params.cmd, "cmd", "", "Command to run after change is detected in files matching pattern. See include-pattern."+sep+"(example: **/*.{scss} ./build.sh)")
 
 }
 

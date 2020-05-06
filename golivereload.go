@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ func main() {
 	flag.Parse()
 
 	if params.version {
-		fmt.Println("0.1.2")
+		fmt.Println("0.2.0")
 		os.Exit(0)
 	}
 
@@ -124,7 +125,7 @@ func processEvent(trimmedPath string, event notify.EventInfo, includePatterns []
 
 		matched, _ := tryMatch([]string{splitCmd[0]}, trimmedPath)
 		if matched {
-			print.Line("Running cmd: ", params.cmd)
+			print.Line("Running cmd: ", splitCmd[1:])
 			time.Sleep(50 * time.Millisecond)
 
 			cmd := exec.Command(splitCmd[1], splitCmd[2:]...)
@@ -212,7 +213,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func startServing() {
-	port := "35729"
+	port := strconv.Itoa(params.port)
 
 	changeHeaderThenServe := func(h http.Handler) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {

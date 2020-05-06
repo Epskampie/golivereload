@@ -30,7 +30,7 @@ func init() {
 			"Use \":\" to separate patterns"+sep+
 			"Use \"**\" (double star) to match multiple directories."+sep+
 			"Matches are relative to watched path.")
-	flag.IntVar(&params.port, "port", 35729, "Port to serve on. Default: 35729")
+	flag.IntVar(&params.port, "port", 35729, "Port to serve on.")
 	flag.BoolVar(&params.debug, "debug", false, "Show debug output.")
 	flag.BoolVar(&params.serve, "serve", false, "Start local webserver that serves files at -path.")
 	flag.BoolVar(&params.version, "version", false, "Show golivereload version.")

@@ -6,9 +6,7 @@ name: Node.js CI 7
 #   pull_request:
 #     branches: [ master ]
 on:
-  release:
-    types:
-      - created
+  release
 
 jobs:
   build:
@@ -17,6 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - run: go get github.com/tools/godep
+    - run: godep restore
     - run: ./build.sh
     - name: Upload the binaries
       uses: skx/github-action-publish-binaries@master

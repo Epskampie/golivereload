@@ -1,4 +1,4 @@
-name: Release bins v2
+name: Release binaries v3
 
 on:
   release:

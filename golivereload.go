@@ -30,7 +30,7 @@ func main() {
 	flag.Parse()
 
 	if params.version {
-		fmt.Println("0.2.0")
+		fmt.Println("0.2.1")
 		os.Exit(0)
 	}
 
@@ -196,13 +196,8 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 
 		if err == nil {
 
-			/* Hello command*/
-			if data["command"] == "hello" {
-				SendString <- "{\"command\":\"hello\",\"protocols\":[\"http://livereload.com/protocols/official-7\",\"http://livereload.com/protocols/official-8\",\"http://livereload.com/protocols/official-9\",\"http://livereload.com/protocols/2.x-origin-version-negotiation\",\"http://livereload.com/protocols/2.x-remote-control\"],\"serverName\":\"LiveReload 2\"}"
-			} else {
-				jsonData, _ := json.Marshal(&data)
-				print.Debug("Got data", string(jsonData))
-			}
+			jsonData, _ := json.Marshal(&data)
+			print.Debug("Got data", string(jsonData))
 
 		} else {
 			DelConn <- conn

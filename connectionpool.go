@@ -32,6 +32,8 @@ func StartWebsocketPool() {
 		case conn := <-AddConn:
 			conns[conn] = true
 			printIfNotCausedBySend("Got new connection. Total number:", cyan(len(conns)))
+			/* Hello command*/
+			conn.WriteMessage(websocket.TextMessage, []byte("{\"command\":\"hello\",\"protocols\":[\"http://livereload.com/protocols/official-7\",\"http://livereload.com/protocols/official-8\",\"http://livereload.com/protocols/official-9\",\"http://livereload.com/protocols/2.x-origin-version-negotiation\",\"http://livereload.com/protocols/2.x-remote-control\"],\"serverName\":\"LiveReload 2\"}"))
 
 		case conn := <-DelConn:
 			delete(conns, conn)

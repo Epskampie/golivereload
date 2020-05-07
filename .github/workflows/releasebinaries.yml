@@ -15,11 +15,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: go get github.com/tools/godep
-    - run: $GOPATH/bin/godep restore
+    - run: ~/go/bin/godep restore
     - run: ./build.sh
-    - name: Upload the binaries
-      uses: skx/github-action-publish-binaries@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        args: 'build/golivereload*'
+#     - name: Upload the binaries
+#       uses: skx/github-action-publish-binaries@master
+#       env:
+#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       with:
+#         args: 'build/golivereload*'

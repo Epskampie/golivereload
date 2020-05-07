@@ -1,4 +1,4 @@
-name: Release binaries 1
+name: Release binaries
 
 on:
   push:
@@ -10,14 +10,14 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v2
     - run: ./build.sh
-#     - name: Upload the binaries
-#       uses: skx/github-action-publish-binaries@master
-#       env:
-#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#       with:
-#         args: 'build/golivereload*'
+    - name: Upload the binaries
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: 'build/golivereload*'

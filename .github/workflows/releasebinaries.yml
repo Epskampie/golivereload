@@ -10,17 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout the repository
-      uses: actions/checkout@master
+    - uses: actions/checkout@v2
       
-    - name: Build binaries
-      uses: skx/github-action-build@master
-      with:
-        builder: build.sh
+    - run: ./build.sh
 
-    - name: Upload the binaries
-      uses: skx/github-action-publish-binaries@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        args: 'build/golivereload*'

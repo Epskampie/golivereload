@@ -1,7 +1,10 @@
+
+name: Release binaries
+
 on:
   release:
     types: [created]
-name: Release binaries
+
 jobs:
   generate:
     name: Create release-artifacts

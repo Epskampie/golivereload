@@ -9,6 +9,8 @@ on:
 jobs:
   build:
 
+    # Can only buld on macos because `notifify` can crosscompile to linux,
+    # but not the other way around
     runs-on: macos-latest
 
     steps:
@@ -32,6 +34,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object,
+          # which include a `upload_url`. 
+          # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           upload_url: ${{ steps.create_release.outputs.upload_url }} 
           asset_path: ./build/linux_amd64.tar.gz
           asset_name: linux_amd64.tar.gz
@@ -52,9 +57,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object,
-          # which include a `upload_url`. 
-          # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           upload_url: ${{ steps.create_release.outputs.upload_url }} 
           asset_path: ./build/macos.tar.gz
           asset_name: macos.tar.gz

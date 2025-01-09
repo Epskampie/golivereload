@@ -156,7 +156,7 @@ func processEvent(trimmedPath string, event notify.EventInfo, includePatterns []
 	data := reloadRequest{
 		Command: "reload",
 		Path:    event.Path(),
-		LiveCSS: strings.HasSuffix(event.Path(), ".css"),
+		LiveCSS: !params.noLiveCSS && strings.HasSuffix(event.Path(), ".css"),
 	}
 	SendJSON <- data
 }

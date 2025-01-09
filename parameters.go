@@ -15,6 +15,7 @@ type ParamsStruct struct {
 	version         bool
 	delay           int
 	port            int
+	noLiveCSS       bool
 }
 
 var params ParamsStruct
@@ -36,6 +37,7 @@ func init() {
 	flag.BoolVar(&params.version, "version", false, "Show golivereload version.")
 	flag.IntVar(&params.delay, "delay", 0, "Delay this many milliseconds before before sending reload command.")
 	flag.StringVar(&params.cmd, "cmd", "", "Command to run after change is detected in files matching pattern. See include-pattern."+sep+"(example: **/*.{scss} ./build.sh)")
+	flag.BoolVar(&params.noLiveCSS, "no-live-css", false, "Disable live CSS reloading feature.")
 
 }
 
